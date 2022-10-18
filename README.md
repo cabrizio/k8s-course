@@ -39,3 +39,4 @@ K8s supports multiple container runtime implementations.
 
 ### K8S cluster - The big picture ###
 
+![image](https://user-images.githubusercontent.com/25394408/196386040-73ac524e-44c0-49b9-b083-32869ead8582.png)
