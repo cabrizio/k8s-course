@@ -40,3 +40,70 @@ K8s supports multiple container runtime implementations.
 ### K8S cluster - The big picture ###
 
 ![image](https://user-images.githubusercontent.com/25394408/196386040-73ac524e-44c0-49b9-b083-32869ead8582.png)
+
+
+## K8S building a cluster ##
+
+### Tools suite ###
+
+ - [Kubeadm] - is a tool that will simplify the process of setting up our K8s cluster
+
+
+### Hands-on  ###
+
+Create a stack of 3 VMs in order to configure a cluster of 1 control-plane and 2 workers, for this purpose I have configured a Vagrantfile and an utility script that will help to configure the VMs quicker. 
+Once configured the VMs and execute the [k8s_utility.sh] we need to initialite the K8s cluster:
+
+```shell
+## Execute the kubeadm cmd on the control-plane only, this will initialite the master node, the output will print also the join cmd to use on the workers node
+
+kubeadm init --pod-network-cidr 192.168.0.0/16 --apiserver-advertise-address 192.168.56.10 --kubernetes-version 1.24.0
+
+## Output ##
+
+# To start using your cluster, you need to run the following as a regular user:
+
+#   mkdir -p $HOME/.kube
+#   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+#   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Alternatively, if you are the root user, you can run:
+
+#   export KUBECONFIG=/etc/kubernetes/admin.conf
+
+# You should now deploy a pod network to the cluster.
+# Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+#   https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+# Then you can join any number of worker nodes by running the following on each as root:
+
+# kubeadm join 192.168.56.10:6443 --token zvqsim.kokbm2brrbm2d10e \
+# 	--discovery-token-ca-cert-hash sha256:615dc9153bc7c1c5e039c8d284aa33ccb016e158eed9bdaaeb28c6f14e744e9c
+
+```
+Install the Clico network-addon
+`kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml`
+
+we can also get the join comand fromthe output or running `kubeadm token create --print-join-command` once executed the join on all the workers node successfully, go back on the master and run `kubectl get nodes`, we should be able to see all the nodes.
+
+
+## K8s namespaces ##
+
+Namespaces are virtual cluster backed by the same physical cluster. K8s objects, such as pods and containers, live in namespaces. Namespaces are a way to separate and organize objects in your cluster.
+Particular helpfull if you have multiple applicationsserving different customers/backend.
+
+list existing namespaces with kubectl
+`kubectl get namespace`
+or 
+`kubectl get ns`
+
+all cluster have a default namespace.This is used when no other namespace is specified. system components are store into the namespace *kube-system*
+
+When using kubectl, you may need to specify a namespace.You can do this with the `--namespace` flag.If no flag are specified then the default namespce will be selected.
+
+`kubectl get pods --namespace my-namespace`
+or
+`kubectl get pods -n my-namespace`
+
+To create our own namespace
+`kubectl create namespace my-namespace`
