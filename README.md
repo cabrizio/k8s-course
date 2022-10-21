@@ -113,10 +113,10 @@ To create our own namespace
 ## K8s Management Overview ##
 
 - [Introducing to High Availability in K8s](#Introducing-to-High-Availability-in-K8s)
-- [Introducing K8s Management Tools]
-- [Safely Draining a K8s Node]
-- [Upgrading K8s with kubeadm]
-- [Backing UP and Restoring etcd Cluster Data]
+- [Introducing K8s Management Tools](#Introducing-K8s-Management-Tools)
+- [Safely Draining a K8s Node](#Safely-Draining-a-K8s-Node)
+- [Upgrading K8s with kubeadm](#Upgrading-K8s-with-kubeadm)
+- [Backing UP and Restoring etcd Cluster Data](#Backing-UP-and-Restoring-etcd-Cluster-Data)
 
 ## Introducing to High Availability in K8s ##
 
@@ -165,11 +165,291 @@ However, this topology requires twice the number of hosts as the stacked HA topo
 ![image](https://user-images.githubusercontent.com/25394408/197200400-7798e23c-fa2a-4919-8c84-68f72b45ac2e.png)
 
 
+## Introducing K8s Management Tools ##
+
+There is a variety of management tools available for K8s. These tools interface with K8s to provide additional functionality.When using K8s, it is a good idea to be aware of some of these tools.
+
+- [kubectl]
+Most probably the tools beign used more often. Kuectl is the official command line interface for K8s. It is the main method you will use to work with K8s.
+- [kubeadm]
+An easy tool for quickly creating K8s clusters
+
+- [minikube]
+Minikube allows you to automatically set up a logical single-node K8s cluster.It is great for getting K8s up and running for developer puerpose
+
+- [helm]
+Helm provides templating and package management for K8s objects. You can use it to manage your own templates or download shared templates from the [helm-community].
+
+- [kompose]
+kompose helps you to translate from docker compose files into K8s objects. If you are using Docker compose for some part of your workflow, you can move your application to K8s easily with Kompose
+
+- [kustomize]
+Kustomize is a configuration management tool for managing K8s object configurations. It allows you to share and re-use templated configurations for K8s applications.
 
 
+## Safely Draining a K8s Node ##
+
+When performing maintenance, you =may sometimes need to remove a K8s node from the service.
+To do this, you can drain the node. Containers running on the node will be gracefully terminated (and potentially rescheduled on another node)
+
+To drain a node, use the `kuectl drain` cmd 
+
+`$ kubectl drain <node>`
+
+When draining a node, you may need to ignore DaemonSets (pods that are tied to each node). If you have any DaemonSet pods running on the node, you will likely need to use the flag `--ignore-daemonsets`.
+
+`$ kubectl drain <node> --ignore-daemonsets`
 
 
+If the node remains part of the cluster, you can allow pods to run on the node again when maintenance is complete using the `kubectl uncordon command <node>`
+
+### Hands-on  ###
+
+Assuming that we already have a cluster up and running.....
+
+Start creating a standard pod
+
+```shell
+$ nano pod.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+ name: my-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+     - containerPort: 80
+  restartPolicy: OnFailure
+
+$ kubectl apply -f pod.yml
+```
+
+and a deployment with 2 replicas
+
+```shell
+$ nano deployment.yml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: my-deployment
+ labels:
+  app: my-deployment
+spec:
+ replicas: 2
+ selector:
+  matchLabels:
+   app: my-deployment
+ template:
+  metadata:
+   labels:
+    app: my-deployment
+  spec:
+   containers:
+   - name: nginx
+     image: nginx:1.14.2
+     ports:
+     - containerPort: 80
+
+$ kubectl apply -f deployment.yml
+```
+
+
+Get a list of pods. You should see the pods you just created (including the two replicas from the deployment). Take node of which node these pods are running on.
+
+`kubectl get pods -o wide`
+
+```shell
+NAME                             READY   STATUS    RESTARTS   AGE    IP              NODE       NOMINATED NODE   READINESS GATES
+my-deployment-566c76b78c-f5nnf   1/1     Running   0          24s    192.168.30.68   worker02   <none>           <none>
+my-deployment-566c76b78c-wk5hh   1/1     Running   0          24s    192.168.5.2     worker01   <none>           <none>
+my-pod                           1/1     Running   0          4m8s   192.168.5.1     worker01   <none>           <none>
+```
+
+Drain the node which the my-pod pod is running.
+
+`kubectl drain worker01 --ignore-daemonsets --force`
+
+Output
+```shell
+node/worker01 cordoned
+WARNING: deleting Pods that declare no controller: default/my-pod; ignoring DaemonSet-managed Pods: kube-system/calico-node-pkgbd, kube-system/kube-proxy-7k7cd
+evicting pod default/my-pod
+evicting pod default/my-deployment-566c76b78c-wk5hh
+pod/my-pod evicted
+pod/my-deployment-566c76b78c-wk5hh evicted
+node/worker01 drained
+```
+Check your list of pods again. You should see the deployment replica pods being moved to the remaining node. The regular pod will be deleted.
+
+```shell
+NAME                             READY   STATUS    RESTARTS   AGE     IP              NODE       NOMINATED NODE   READINESS GATES
+my-deployment-566c76b78c-f5nnf   1/1     Running   0          2m47s   192.168.30.68   worker02   <none>           <none>
+my-deployment-566c76b78c-hxbx4   1/1     Running   0          36s     192.168.30.69   worker02   <none>           <none>
+```
+
+Uncordon the node to allow new pods to be scheduled there again.
+`kubectl uncordon worker01`
+
+one finished you can notice the node being part of the cluster again
+
+```shell
+NAME       STATUS   ROLES           AGE   VERSION
+master     Ready    control-plane   25m   v1.24.0
+worker01   Ready    <none>          24m   v1.24.0
+worker02   Ready    <none>          24m   v1.24.0
+```
+but the regular pod is not present, so it needs to be deployed again, the uncordon deployment does not reschedule the deployment.
+
+
+## Upgrading K8s with kubeadm ##
+
+When using K8s, you will likely want to periodically upgrade K8s to keep your cluster up to date. Kubeadm makes this process easier
+
+Control Plane Upgrade Steps:
+	- Upgrade kubeadm on the control-plane 
+	- Drain the control-plane node
+	- Plan the upgrade (kubeadm upgrade plan)
+	- Apply the upgrade (kubeadm upgrade apply)
+	- Upgrade kubelet and kubectl on the control-plane node
+	- Uncordon the control plane node
+
+Worker Node Upgrade Steps:
+	- Drain the node
+	- Upgrade kubeadm
+	- Upgrade the kubelet configuration (kubeadm upgrade node).
+	- Upgrade kubelet and kubectl.
+	- Uncordon the node
+
+### Hands-on  ###
+
+Assuming that we already have a cluster up and running.....
+
+Always start with the control-plan!!!
+
+Drain the control plane node.
+`kubectl drain master --ignore-daemonsets`
+
+Upgrade kubeadm and check the version
+```shell
+sudo apt-get update && \
+sudo apt-get install -y --allow-change-held-packages kubeadm=1.25.0-00
+kubeadm version
+```
+
+Plan the upgrade.
+
+`sudo kubeadm upgrade plan v1.25.0`
+
+Upgrade the control plane components.
+`sudo kubeadm upgrade apply v1.25.0`
+
+
+Upgrade kubelet and kubectl on the control plane node.
+```shell
+sudo apt-get update && \
+sudo apt-get install -y --allow-change-held-packages kubelet=1.25.0-00 kubectl=1.25.0-00
+```
+
+Restart kubelet.
+```shell
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+At this stage we can rejoin the control-plane
+`kubectl uncordon master`
+
+```shell
+NAME       STATUS   ROLES           AGE   VERSION
+master     Ready    control-plane   60m   v1.25.0
+worker01   Ready    <none>          59m   v1.24.0
+worker02   Ready    <none>          59m   v1.24.0
+```
+
+Upgrading the worker nodes, this process needs to be done on all the worker-nodes. As demo we use worker01.
+
+*Note: In a real-world scenario, you should not perform upgrades on all worker nodes at the same time. Make sure
+enough nodes are available at any given time to provide uninterrupted service.*
+
+
+Drain the worker
+`kubectl drain worker01 --ignore-daemonsets --force`
+
+Upgrade kubeadm and check the version
+```shell
+sudo apt-get update && \
+sudo apt-get install -y --allow-change-held-packages kubeadm=1.25.0-00
+kubeadm version
+```
+
+Plan the upgrade.
+`sudo kubeadm upgrade node`
+
+Upgrade kubelet and kubectl on the control plane node.
+```shell
+sudo apt-get update && \
+sudo apt-get install -y --allow-change-held-packages kubelet=1.25.0-00 kubectl=1.25.0-00
+```
+
+Restart kubelet.
+```shell
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+At this stage we can rejoin the control-plane
+`kubectl uncordon worker01`
+
+
+All nodes have been updated successfully
+```shell
+NAME       STATUS   ROLES           AGE    VERSION
+master     Ready    control-plane   116m   v1.25.0
+worker01   Ready    <none>          115m   v1.25.0
+worker02   Ready    <none>          115m   v1.25.0
+```
+
+
+## Backing UP and Restoring etcd Cluster Data ##
+
+ETCD is the backend data storage solution for your K8s cluster. As such, all your K8s objects, applications, and configurations are stored in etcd.Somtimes it might be a good idea to run a backup.
+
+We can backup etcd data using the etcd command line tool, [etcdctl].
+
+Use the `etcdctl` snapshot save command to backup the data.
+
+`$ ETCDCTL_API=3 etcdctl --endpoints $ENDPOINT snapshot save <file_name>`
+
+You can also restore etcd data froma backup using the `etcdctl` restore command.
+We will need to supply some additional parameters, as the restore operation creates a new logical cluster.
+
+`$ ETCDCTL_API=3 etcdctl snapshot restore <file_name>`
+
+
+example
+```shell
+
+$ sudo ETCDCTL_API=3 etcdctl snapshot save snapshot.db --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt --key /etc/kubernetes/pki/etcd/server.key
+
+$ sudo ETCDCTL_API=3 etcdctl snapshot status snapshot.db  --write-out=table
+
+	+----------+----------+------------+------------+
+	|   HASH   | REVISION | TOTAL KEYS | TOTAL SIZE |
+	+----------+----------+------------+------------+
+	| 86016bcd |    25279 |       1043 |     4.2 MB |
+	+----------+----------+------------+------------+
+```
 
 
 [//]: #
 	[Kubeadm]: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
+	[helm-community]: <https://artifacthub.io/>
+	[kubectl]: <>
+	[kubeadm]: <>
+	[minikube]: <>
+	[helm]: <>
+	[kompose]: <>
+	[kustomize]: <>
+	[etcdctl]: <https://etcd.io/docs/v3.4/install/>
