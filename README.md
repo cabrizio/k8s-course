@@ -164,3 +164,12 @@ However, this topology requires twice the number of hosts as the stacked HA topo
 
 ![image](https://user-images.githubusercontent.com/25394408/197200400-7798e23c-fa2a-4919-8c84-68f72b45ac2e.png)
 
+
+
+
+
+
+
+
+[//]: #
+	[Kubeadm]: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
