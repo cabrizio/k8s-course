@@ -112,7 +112,7 @@ To create our own namespace
 
 ## K8s Management Overview ##
 
-- [Introducing to High Availability in K8s](##Introducing-to-High-Availability-in-K8s##)
+- [Introducing to High Availability in K8s](#Introducing-to-High-Availability-in-K8s)
 - [Introducing K8s Management Tools]
 - [Safely Draining a K8s Node]
 - [Upgrading K8s with kubeadm]
