@@ -126,6 +126,9 @@ K8s facilitates highpavailability applications, but you can also design the clus
 
 When using multiple control-planes for high availability, you will likely need to communicate with the K8s api trough a load balancer. This includes clients such as kubelet instances running on worker nodes.
 
+![image](https://user-images.githubusercontent.com/25394408/197200514-9fb4aa07-210f-4b29-9411-89215fb38a5b.png)
+
+
 We also can have differet High Availability topology
 - [Stacked etcd topology]
 - [External etcd topology]
@@ -146,6 +149,8 @@ You should therefore run a minimum of three stacked control plane nodes for an H
 
 This is the default topology in kubeadm. A local etcd member is created automatically on control plane nodes when using kubeadm init and kubeadm join --control-plane.
 
+![image](https://user-images.githubusercontent.com/25394408/197200331-d1c045c6-1029-497a-b2e3-c2ccaf2c3d69.png)
+
 
 ### External etcd topology ###
 
@@ -157,4 +162,5 @@ This topology decouples the control plane and etcd member. It therefore provides
 
 However, this topology requires twice the number of hosts as the stacked HA topology. A minimum of three hosts for control plane nodes and three hosts for etcd nodes are required for an HA cluster with this topology.
 
+![image](https://user-images.githubusercontent.com/25394408/197200400-7798e23c-fa2a-4919-8c84-68f72b45ac2e.png)
 
