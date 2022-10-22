@@ -130,8 +130,8 @@ When using multiple control-planes for high availability, you will likely need t
 
 
 We also can have differet High Availability topology
-- [Stacked etcd topology]
-- [External etcd topology]
+- [Stacked etcd topology](#Stacked-etcd-topology)
+- [External etcd topology](#External-etcd-topology)
 
 ### Stacked etcd topology ###
 
@@ -446,10 +446,10 @@ $ sudo ETCDCTL_API=3 etcdctl snapshot status snapshot.db  --write-out=table
 [//]: #
 	[Kubeadm]: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
 	[helm-community]: <https://artifacthub.io/>
-	[kubectl]: <>
-	[kubeadm]: <>
-	[minikube]: <>
-	[helm]: <>
-	[kompose]: <>
-	[kustomize]: <>
+	[kubectl]: <https://kubernetes.io/docs/reference/kubectl/kubectl/>
+	[kubeadm]: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
+	[minikube]: <https://minikube.sigs.k8s.io/docs/start/>
+	[helm]: <https://helm.sh/>
+	[kompose]: <https://github.com/kubernetes/kompose>
+	[kustomize]: <https://github.com/kubernetes-sigs/kustomize>
 	[etcdctl]: <https://etcd.io/docs/v3.4/install/>
