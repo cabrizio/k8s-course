@@ -20,7 +20,7 @@ Components:
 - cloud-controller-manager, provides an interface between K8s and various cloud platforms.It is only used when using cloud-based resources alongside K8s.
 
 
-### K8s Workers node ###
+### _K8s Workers node_ ###
 
 K8s Nodes are the machines where the containers managed by the cluster run. A cluster can have any number of nodes.
 
@@ -37,19 +37,19 @@ K8s supports multiple container runtime implementations.
 
 
 
-### K8S cluster - The big picture ###
+### _K8S cluster - The big picture_ ###
 
 ![image](https://user-images.githubusercontent.com/25394408/196386040-73ac524e-44c0-49b9-b083-32869ead8582.png)
 
 
 ## K8S building a cluster ##
 
-### Tools suite ###
+### _Tools suite_ ###
 
  - [Kubeadm] - is a tool that will simplify the process of setting up our K8s cluster
 
 
-### Hands-on  ###
+### _Hands-on_  ###
 
 Create a stack of 3 VMs in order to configure a cluster of 1 control-plane and 2 workers, for this purpose I have configured a Vagrantfile and an utility script that will help to configure the VMs quicker. 
 Once configured the VMs and execute the [k8s_utility.sh] we need to initialite the K8s cluster:
@@ -120,7 +120,7 @@ To create our own namespace
 
 ## Introducing to High Availability in K8s ##
 
-### High Availability in K8s ###
+### _High Availability in K8s_ ###
 
 K8s facilitates highpavailability applications, but you can also design the cluster itself to be high available. To do this you need multiple control-plane.
 
@@ -133,7 +133,7 @@ We also can have differet High Availability topology
 - [Stacked etcd topology](#Stacked-etcd-topology)
 - [External etcd topology](#External-etcd-topology)
 
-### Stacked etcd topology ###
+### _Stacked etcd topology_ ###
 
 A stacked HA cluster is a topology where the distributed data storage cluster provided by etcd is stacked on top of the cluster formed by the nodes managed by kubeadm that run control plane components.
 
@@ -152,7 +152,7 @@ This is the default topology in kubeadm. A local etcd member is created automati
 ![image](https://user-images.githubusercontent.com/25394408/197200331-d1c045c6-1029-497a-b2e3-c2ccaf2c3d69.png)
 
 
-### External etcd topology ###
+### _External etcd topology_ ###
 
 An HA cluster with external etcd is a topology where the distributed data storage cluster provided by etcd is external to the cluster formed by the nodes that run control plane components.
 
@@ -203,7 +203,7 @@ When draining a node, you may need to ignore DaemonSets (pods that are tied to e
 
 If the node remains part of the cluster, you can allow pods to run on the node again when maintenance is complete using the `kubectl uncordon command <node>`
 
-### Hands-on  ###
+### _Hands-on_  ###
 
 Assuming that we already have a cluster up and running.....
 
@@ -324,7 +324,7 @@ Worker Node Upgrade Steps:
 	- Upgrade kubelet and kubectl.
 	- Uncordon the node
 
-### Hands-on  ###
+### _Hands-on_  ###
 
 Assuming that we already have a cluster up and running.....
 
@@ -456,7 +456,7 @@ You can also use kubectl to deploy applications,inspect and manage cluster resou
 	- kubectl exec, it can be used to run commands inside containers
 
 
-### kubectl tips ###
+### _kubectl tips_ ###
 
 Imperative Commands:
 	- [declarative] - Define objects using data structures such as YAML or JSON `kubectl create -f <file_name>.yaml`
@@ -468,7 +468,7 @@ For the imperative command you can also use the `--dry-run` flag, this will run 
 Use `--record` flag to record the command that was used to make a change `kubectl scale deployment my-deployment replicas=5 --record`, you can see it using the `kubectl describe`
 
 
-### EXTRAS ###
+### _EXTRAS_ ###
 - [Deployments DOC](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
 - [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
 - [Kubernetes Object Management](https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/)
