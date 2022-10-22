@@ -443,6 +443,66 @@ $ sudo ETCDCTL_API=3 etcdctl snapshot status snapshot.db  --write-out=table
 ```
 
 
+## Kubectl ##
+
+kubectl is a command line tool that allows you to interact with K8s. kubectl uses the K8s-API to communicate with the cluster and carry oput your commands.
+You can also use kubectl to deploy applications,inspect and manage cluster resources, and view logs
+
+	- kubectl get, to list objects in the K8s cluster
+	- kubectl describe, to get detailed information about K8s objects
+	- kubectl create, to create objects
+	- kubectl apply, similar to kubectl create. However if you use kubectl apply on an object that already exists, it will modify the existing object, if possible
+	- kubectl delete, to delete object from the cluster
+	- kubectl exec, it can be used to run commands inside containers
+
+
+### kubectl tips ###
+
+Imperative Commands:
+	- [declarative] - Define objects using data structures such as YAML or JSON `kubectl create -f <file_name>.yaml`
+	- [imperative] - Define objects using kubectl commands and flag. Some people find imperative commands faster `kubectl create deployment my-deployment --image=nginx`
+
+For the imperative command you can also use the `--dry-run` flag, this will run the imperative command without creating the object. Combine it with `-o yaml` to quickly obtain a sample YAML file you can manipulate
+`kubectl create deployment my-deployment --image=nginx --dry-run -o yaml`
+
+Use `--record` flag to record the command that was used to make a change `kubectl scale deployment my-deployment replicas=5 --record`, you can see it using the `kubectl describe`
+
+
+### EXTRAS ###
+- [Deployments DOC](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+- [Kubernetes Object Management](https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/)
+
+
+
+## Managing K8s Role-Based Access Control (RBAC) ##
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 [//]: #
 	[Kubeadm]: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
 	[helm-community]: <https://artifacthub.io/>
@@ -453,3 +513,5 @@ $ sudo ETCDCTL_API=3 etcdctl snapshot status snapshot.db  --write-out=table
 	[kompose]: <https://github.com/kubernetes/kompose>
 	[kustomize]: <https://github.com/kubernetes-sigs/kustomize>
 	[etcdctl]: <https://etcd.io/docs/v3.4/install/>
+	[declarative]:
+	[imperative]:
