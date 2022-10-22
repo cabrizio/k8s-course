@@ -2,7 +2,7 @@
 
 ## K8S architectual ##
 
-### K8s Control Plane ###
+### _K8s Control Plane_ ###
 
 The control plane is a collection of multiple components responsable for managing the cluster itself globally. Essentially, the control plane controls the cluster.
 Individual control plane components can run on any machine in the cluster, but ussually are run on dedicated controller machines.
