@@ -712,27 +712,160 @@ spec:
 $ kubectl create -f env-pod.yml
  ```
 Check the log for the pod to see your configuration values `kubectl logs env-pod`
-output `configmap: Hello, world! secret: secret`
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+the output should be  `configmap: Hello, world! secret: secret`
 
 
 ### _Managing Container Resources_ ###
 
+*Resource Request* allow you to define an amount of resources (such as CPU or memory) you expect a container to use. The K8s scheduler will use resource requests to avoid scheduling pods on nodes that do not have enough available resources.
+
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: big-request-pod
+spec:
+ containers:
+ - name: busybox
+   image: busybox
+   command: ['sh', '-c', 'while true; do sleep 3600; done']
+   resources:
+    requests:
+     cpu: "10000m"
+     memory: "128Mi"
+```
+
+_Tips_: Containers are allowed to use more or less that the requested resources. Resource requests only affect scheduling.
+
+Memory is measured in bytes.
+CPU is measured in CPU units, which are 1/1000 of one CPU
+
+*Resouce Limits* provide a way for you to limit the amount of resources your container can use.The container runtime is responsible for enforcing these limits, and different container runtimes do this differently.
+
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: resource-pod
+spec:
+ containers:
+ - name: busybox
+   image: busybox
+   command: ['sh', '-c', 'while true; do sleep 3600; done']
+   resources:
+    requests:
+     cpu: "250m"
+     memory: "128Mi"
+    limits:
+     cpu: "500m"
+     memory: "256Mi"
+```
+_Tips_: Some runtimes will enforce these limits by terminating container processes that attempt to use more than the allowed amount of resources.
+
+*ETRAS* [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-requests-and-limits-of-pod-and-container)
+
+
+
 ### _Monitoring container health with Pods_ ###
+
+*Container Health* K8s provides a number of features that allow you to build robust solutions, such as the ability to automatically restart unhealthy containers. To make the most of these features, K8s needs to be able to accurately determine the status of your applications. This means actively monitoring container health.
+
+*Liveness Probes* allow you to automatically determine whether or not a container application is in healthy state. By default, K8s will only consider a container to be "down" if the container process stops.
+Liveness probes alow you to customize this detection mechanism and make it more sophisticated.
+
+*Startup Probes* are very similar to liveness probes. However, while liveness probes tun constantly on a schedule, startup probes run a container startup and stop running once they succeed. They are used to determine when the application has successfully started up. Startup probes are especially useful for legacy applications that can have long startup times.
+
+*Readiness Probes* are used to determine when a container is ready to accept requests.When you have a service backed by multiple container endpoints, user traffic will not be sent to a particular pod until its containers have all passed the readiness checks defined by thei rediness probes.Use readiness probes to prevent user traffic from being sent to pods that are still in the process of starting up.
+
+
+### _Hands-On_ ###
+
+Create a pod with a command-based liveness probe `vi liveness-pod.yml`
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: liveness-pod
+spec:
+ containers:
+ - name: busybox
+   image: busybox
+   command: ['sh', '-c', 'while true; do sleep 3600; done']
+   livenessProbe:
+    exec:
+     command: ["echo", "Hello, world!"]
+    initialDelaySeconds: 5
+    periodSeconds: 5
+```
+Create the objects `kubectl create -f liveness-pod.yml`, and check the status.
+
+Create a pod with an http-based liveness probe `vi liveness-pod-http.yml`
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: liveness-pod-http
+spec:
+ containers:
+ - name: nginx
+   image: nginx:1.19.1
+   livenessProbe:
+    httpGet:
+     path: /
+     port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 5
+```
+Create the objects `kubectl create -f liveness-pod-http.yml` and check the status.
+
+Create a pod with a startup probe `vi startup-pod.yml`
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: startup-pod
+spec:
+ containers:
+ - name: nginx
+   image: nginx:1.19.1
+   startupProbe:
+    httpGet:
+     path: /
+     port: 80
+    failureThreshold: 30
+    periodSeconds: 10
+```
+Create the objects `kubectl create -f startup-pod.yml` and check the status.
+
+Create a pod with a readiness probe `vi readiness-pod.yml`
+```shell
+apiVersion: v1
+kind: Pod
+metadata:
+ name: readiness-pod
+spec:
+ containers:
+ - name: nginx
+   image: nginx:1.19.1
+   readinessProbe:
+    httpGet:
+     path: /
+     port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 5
+```
+
+Create the objects `kubectl create -f readiness-pod.yml` and check the status. 
+
+
+
+
+
+
+
+
+
+
 
 ### _Building Self-Healing Pods with Restart Policies_ ###
 
