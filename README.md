@@ -858,7 +858,9 @@ spec:
 Create the objects `kubectl create -f readiness-pod.yml` and check the status. 
 
 
-
+*ETRAS*
+- [Pod Lifecycle](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/)
+- [Container probes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes)
 
 
 
