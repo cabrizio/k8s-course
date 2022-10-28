@@ -1,5 +1,6 @@
 # K8S Certification CKA #
 
+
 ## K8S architectual ##
 
 ### _K8s Control Plane_ ###
@@ -58,6 +59,8 @@ Once configured the VMs and execute the [k8s_utility.sh] we need to initialite t
 ## Execute the kubeadm cmd on the control-plane only, this will initialite the master node, the output will print also the join cmd to use on the workers node
 
 kubeadm init --pod-network-cidr 192.168.0.0/16 --apiserver-advertise-address 192.168.56.10 --kubernetes-version 1.24.0
+
+kubeadm init --pod-network-cidr 192.168.0.0/16 --kubernetes-version 1.24.0
 
 ## Output ##
 
@@ -477,8 +480,263 @@ Use `--record` flag to record the command that was used to make a change `kubect
 
 ## Managing K8s Role-Based Access Control (RBAC) ##
 
+### _RBAC in K8s_ ###
+
+Role-based access control in K8s allows you to control what users are allowed to do and access within your cluster.
+For example, you can use RBAC to allow developers to read metadata and logs from K8s pods but not make changes to them.
+
+### _RBAC Objects_ ###
+
+Roles and ClusterRoles are K8s objects that define a set of permissions. These permissions determine what users can do in the cluster.
+
+	- A role defines permissions within a particular namespace
+	- ClusterRole defines cluster-wide permissions not specific to a single namespace.
+
+[image]
+
+RoleBinding and ClusterRolebinding are objects that connect Roles and ClusterRoles to users
+
+[image]
+
+### _Hands-On_ ###
+
+Create a Role spec file. `vi role.yml`
+
+```shell
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+	namespace: default
+	name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "watch", "list"]
+```
+
+Create the rule `kubectl apply -f role.yml`
+
+Bind the role to the `dev` user `vi rolebinding.yml`
+
+```shell
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+	name: pod-reader
+	namespace: default
+subjects:
+- kind: User
+  name: dev
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+Create the rule-binding `kubectl apply -f rolebinding.yml`
 
 
+### _ETRAS_ ###
+
+- [RBAC official documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+
+
+## _Creating Service Accounts_ ##
+
+In K8s a service account is an account used by container process within Pods to authenticate with the K8s API.
+If your pods needs to communicate with the K8s API, you can use service accounts to control their access.
+
+A service account can be created with some YAML as usual, and you can manage access control for service accounts, just like any other user using [RBAC objects](#RBAC-Objects).
+Bind service accounts with RoleBinding or ClusterRoleBinding to provide access to the K8s API functionality.
+
+*A RoleBinding or CLusterRoleBinding binds a role to subjects, such as groups,users or ServiceAccount*
+
+### _Hands-On_ ###
+
+As any other objects the ServiceAccount can be created using a YAML file or an imperative command
+
+`vi my-serviceaccount.yml`
+
+```shell
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-serviceaccount
+```
+
+OR
+
+`kubectl create sa my-serviceaccount2 -n default`
+
+View your ServiceAccount
+
+`kubectl get sa`
+
+
+Attach a Role to the ServiceAccount with a RoleBinding
+
+`vi sa-pod-reader.yml`
+
+```shell
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sa-pod-reader
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-serviceaccount
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+Create the objects `kubectl create -f sa-pod-reader.yml`. Get additional information for the ServiceAccount using
+`kubectl describe sa my-serviceaccount`
+
+
+
+## Inspecting Pod Resource Usage ##
+
+### _K8s Metrics Server_ ###
+
+In order to view metrics about the resources pods and containers are using, we need an add-on to collect and provide that data.One such add-on is *Kubernetes Metrics Server*.
+With `kubectl top` you can view data about resource usage in your pods and nodes. `kubectl top` also supports flags like `--sort-by` and `--selector`
+
+`kubectl top pod --sort-by <JSONPATH> --selector <selector>`
+
+
+- [K8s metrics](https://github.com/kubernetes-sigs/metrics-server)
+
+
+
+## Pods and Containers Overview ##
+
+### _Managing Application Configuration_ ###
+
+*Application Configuration*
+
+When you are running applications in K8s, you may want to pass dynamic values to your applications at runtime to control how they behave. This is known as _application configuration_.
+
+You can store configuration data in K8s unsing _ConfigMaps_. ConfigMaps store data in the form of a  key-value map. ConfigMap data can be passed to your container applications.
+
+Secrets are similar to CponfoigMaps but are desogned to store sensitive data, such as passwords or API keys, more securely. They are created and used similarly to ConfigMaps.
+
+You can pass ConfigMap and Secret data yo your container using environment variables. These variables will be visible to your container at runtime.
+
+Configuration data from ConfigMaps and Secrets can also be passed to containers in the form of mounted volumes.This will cause the configuration data to appear in files available to the container file system.
+
+Each top-level key in the configuration data will appear as a file containing all keys below that top-level key.
+
+- [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/)
+- [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
+
+### _Hands-On_ ###
+
+Create a ConfigMap `vi my-configmap.yml`
+```shell
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: my-configmap
+  namespace: default
+data:
+  key1: Hello, world!
+  key2: |
+    Test
+    multiple lines
+    more lines
+```
+
+Create the objects `kubectl create -f my-configmap.yml`
+
+
+Create a Secret `vi my-secret.yml`, be aware that all the values need to be base64-encoded, example
+
+```shell
+$ echo -n 'secret' | base64
+$ echo -n 'anothersecret' | base64
+
+$ vi my-secret.yml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  namespace: default
+type: Opaque
+data:
+  secretkey1: c2VjcmV0
+  secretkey2: YW5vdGhlcnNlY3JldA==
+
+```
+
+Create the object `kubectl create -f my-secret.yml`
+
+Create a simple pod passing the confMaps and Secret as env variables
+
+```shell
+$ vi env-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "env-pod"
+  namespace: default
+  labels:
+    app: "env-pod"
+spec:
+  containers:
+  - name: env-pod
+    image: "debian:stable-slim"
+    resources:
+      limits:
+        cpu: 200m
+        memory: 500Mi
+      requests:
+        cpu: 100m
+        memory: 200Mi
+    command: ['sh', '-c', 'echo "configmap: $CONFIGMAPVAR secret: $SECRETVAR"']
+    env:
+    - name: CONFIGMAPVAR
+      valueFrom:
+        configMapKeyRef:
+          name: my-configmap
+          key: key1
+    - name: SECRETVAR
+      valueFrom:
+        secretKeyRef:
+          name: my-secret
+          key: secretkey1
+  restartPolicy: Always
+
+$ kubectl create -f env-pod.yml
+ ```
+Check the log for the pod to see your configuration values `kubectl logs env-pod`
+output `configmap: Hello, world! secret: secret`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### _Managing Container Resources_ ###
+
+### _Monitoring container health with Pods_ ###
+
+### _Building Self-Healing Pods with Restart Policies_ ###
+
+### _Introducing Init Containers_ ###
 
 
 
