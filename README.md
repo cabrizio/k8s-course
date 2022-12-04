@@ -864,30 +864,171 @@ Create the objects `kubectl create -f readiness-pod.yml` and check the status.
 
 
 
-
-
-
-
-
 ### _Building Self-Healing Pods with Restart Policies_ ###
+
+*Restart Policies*
+K8s can automatically restart containers when they fail. Restart Policies allow you to customize this behaviour by defining when you want a pod's containers to be automatically restarted.
+
+Restart policies are an important component of self-healing applications, qhich are automatically repaired when a problem arises.
+
+There are 3 possible values for a pod's restart policy in K8s:
+	 - [Always](#Always)
+	 - [OnFailure](#OnFailure)
+	 - [Never](#Never)
+
+
+### Always ###
+
+The default restart policy in K8s. With this policy, containers will always be restarted if they stop, even if they completed successfully. U/se this policy for applications that should always be running.
+
+### OnFailure ###
+
+The OnFailure restart policy will restart containers only of the container process exits with an error code or the container is determined to be unhealthy by liveness probe.?Use this policy for application that need to run successfully and then stop.
+
+
+### Never ###
+
+The Never restart policy will cause the pod's container to never be restarted, even if the container exits or a liveness probe fails.Use this for applications that should run once and never be automatically restarted.
+
+*ETRAS*
+- [Restart Policy](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy)
+
+
+### _Creating Multi-Container Pods_ ###
+
+A k8s pod can have one or more containers. Apod with more than one container is a multi-container pod.
+
+In a multi-container Pod, the containers share resources such as network and storage. They can interact with one another, working together to provide functionality.
+
+*Best Practise: Keep containers in separate Pods unless they need to share resources*
+
+
+*Cross-Container Interaction*
+Containers sharing the same Pod can interact with one another using shared resources.
+
+	- [Network] - Containers share the same networking namespace and can communicate with one another on any port, even if that port is not exposed to the cluster
+
+	- [Storage] - Containers can use volumes to share data in a Pod
+
+
+
 
 ### _Introducing Init Containers_ ###
 
+Init containers are containers that run once during the startup process of a pod. A pod can have any number of init containers, and they will each run once (in-order) to completion.
+
+*Init Containers*
+You can use init containers to perform a variety of startup tasks.They can contain and use software and setup scripts that are not needed by your main containers.
+
+They are often useful in keeping your main containers lighter and more secure by offloading startup tasks to a separate container.
+
+*Use Cases for init Containers*
+some sample use cases for init containers:
+  - Cause a pod to wait for another K8s resource to be created before finishing startup.
+  - Perform sensitive startup steps securely outside of app containers.
+  - Populate data into a shared volume at startup
+  - Communicate with another service at startup
+
+
+Example of an init container configuration yaml file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.19.1
+  initContainers:
+  - name: delay
+    image: busybox
+    command: ['sleep', '30']
+```
+
+*ETRAS*
+- [Init Containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
 
 
 
+## Advanced POD allocation ##
+
+### Exploring K8s Scheduling ###
+
+### _What is scheduling_ ###
+
+*Scheduling* is the process of assigning Pods to ?nodes so kubelets can run them.
+*Schdeuler* is a control plane component that handles scheduling
+
+### _Scheduling Process_ ###
+
+The K8s cheduler selects a suitable Node for each Pod. It takes into account things like:
+   - Resource requests vs available node resources
+   - Various configurations that affect scheduling using node labels
+
+### _nodeSelector_ ###
+
+You can configure a nodeSelector for your Pods to limit which Node(s) the Pod can be scheduled on.
+Node selectors use node labels to filter suitable nodes.
+
+Example
+```yaml
+apiversion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+    containers:
+    - name: nginx
+      image: nginx
+    nodeSelector:
+      mylabel: myvalue
+
+```
+
+### _nodeName_ ###
+
+You can bypass scheduling and assign a Pod to a specific Node by name using nodeName.
+
+Example
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  nodeName: <node-name>
+```
+
+### Using DaemonSets ###
+
+### _What is a DaemonSet_ ###
+
+DeamonSet automatically runs a copy of a Pod on each node, and will also run a copy of the Pod on new nodes as they are added to the cluster.
+
+### _DaemonSets and Scheduling_ ###
+
+DaemonsSets respect normal scheduling rules around node labels, taints, and tolerations. If a pod would not normally be scheduled on a node, a DaemonSet will not create a copy of the Pod on that Node.
+
+*EXTRAS*
+   - [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
 
 
 
+## Using static pods ##
 
+### _What is a static pods_ ###
 
+A Pod that is managed directly by the kubelet on a node, not by the K8s API server. They can run even if there is no K8s API server present.
+Kubelet automatically creates static Pods from YAML manifest files located in the manifest path on the node.
 
+### _Mirror Pods_ ###
 
-
-
-
-
-
+Kubelet will create a mirror Pod for eah static Pod. Mirror Pods allow you to see the status of the static Pod via the K8s API, but you cannot change or manage them via the API.
 
 
 
